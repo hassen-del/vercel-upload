@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, MessageSquare, Calendar, BarChart3, X, Send, Minimize2, Maximize2, AlertCircle, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Calendar, BarChart3, X, Send, Minimize2, Maximize2, AlertCircle } from 'lucide-react';
 import PremiumRevenueDashboard from '../components/premium-revenue-dashboard';
 import ConversationsDashboard from '../components/conversations-dashboard';
 import AppointmentsCalendar from '../components/appointments-calendar';
@@ -29,7 +29,6 @@ export default function ClientPortal() {
   ]);
   const [messageInput, setMessageInput] = useState('');
 
-  // Expose debugger to window for console access
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.dashboardDebugger = dashboardDebugger;
@@ -37,24 +36,15 @@ export default function ClientPortal() {
     }
   }, []);
 
-  // Fetch real call data from Supabase
   useEffect(() => {
     const fetchCallData = async () => {
       setIsLoadingData(true);
       setDataError(null);
 
       try {
-        // Build the API URL
         const apiUrl = `${SUPABASE_URL}/rest/v1/call_analytics?client_id=eq.${TRIAL_CUSTOMER_ID}&order=created_at.desc&limit=50`;
 
-        // Log request details for debugging
-        console.log('📡 Supabase Request:', {
-          url: apiUrl,
-          timestamp: new Date().toISOString(),
-          customerId: TRIAL_CUSTOMER_ID,
-          supabaseUrl: SUPABASE_URL,
-          hasApiKey: !!SUPABASE_KEY,
-        });
+        console.log('📡 Supabase Request:', { url: apiUrl, customerId: TRIAL_CUSTOMER_ID });
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -66,68 +56,32 @@ export default function ClientPortal() {
           }
         });
 
-        // Log response details
-        console.log('📡 Supabase Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries()),
-          timestamp: new Date().toISOString(),
-        });
+        console.log('📡 Supabase Response:', { status: response.status });
 
         if (!response.ok) {
           let errorMsg = `API Error: ${response.status} ${response.statusText}`;
-
-          // More specific error messages
           if (response.status === 400) {
             errorMsg = 'Bad Request: Check query format or API configuration';
-            console.error('❌ 400 Error - Likely causes: Invalid query, wrong table name, or malformed request');
           } else if (response.status === 401) {
             errorMsg = 'Authentication Failed: Invalid API key';
           } else if (response.status === 403) {
             errorMsg = 'Permission Denied: Check Supabase RLS policies';
           } else if (response.status === 404) {
             errorMsg = 'Resource Not Found: Table or column does not exist';
-          } else if (response.status === 429) {
-            errorMsg = 'Rate Limited: Too many requests';
           }
-
-          // Try to get more details from response body
-          try {
-            const errorBody = await response.text();
-            console.error('API Error Details:', errorBody);
-            if (errorBody) {
-              errorMsg += ` - ${errorBody.substring(0, 100)}`;
-            }
-          } catch (e) {
-            // Ignore if can't parse error body
-          }
-
           throw new Error(errorMsg);
         }
 
         const data = await response.json();
-
-        console.log('✅ Supabase Success:', {
-          recordCount: data.length,
-          firstRecord: data[0],
-          timestamp: new Date().toISOString(),
-        });
+        console.log('✅ Supabase Success:', { recordCount: data.length });
 
         setCallsData(data);
         setDataError(null);
 
-        // Calculate metrics from real data
         const total = data.length;
         const booked = data.filter(c => c.category === 'BOOKED').length;
         const conversionRate = total > 0 ? ((booked / total) * 100).toFixed(1) : 0;
-        const totalRevenue = booked * 50; // $50 per booking
-
-        console.log('📊 Metrics Calculated:', {
-          total,
-          booked,
-          conversionRate,
-          totalRevenue,
-        });
+        const totalRevenue = booked * 50;
 
         setDashboardMetrics({
           totalCalls: total,
@@ -137,38 +91,19 @@ export default function ClientPortal() {
         });
       } catch (error) {
         console.error('❌ Error fetching call data:', error);
-
-        // Create detailed error message
         let userMessage = 'Unable to load live data';
-
-        if (error.message.includes('400')) {
-          userMessage = 'Configuration Error: Please check API settings (click Retry to try again)';
-        } else if (error.message.includes('401')) {
-          userMessage = 'Authentication Error: API key may be invalid';
-        } else if (error.message.includes('403')) {
-          userMessage = 'Permission Error: Check database access rights';
-        } else if (error.message.includes('404')) {
-          userMessage = 'Not Found: Check database table configuration';
-        } else if (error.message.includes('Network')) {
-          userMessage = 'Network Error: Check your internet connection';
-        }
-
+        if (error.message.includes('400')) userMessage = 'Configuration Error: Please check API settings';
+        if (error.message.includes('401')) userMessage = 'Authentication Error: API key may be invalid';
+        if (error.message.includes('403')) userMessage = 'Permission Error: Check database access rights';
         setDataError(userMessage);
-
-        // Use demo data as fallback
-        setDashboardMetrics({
-          totalCalls: 0,
-          bookings: 0,
-          conversions: 0,
-          revenue: 0
-        });
+        setDashboardMetrics({ totalCalls: 0, bookings: 0, conversions: 0, revenue: 0 });
       } finally {
         setIsLoadingData(false);
       }
     };
 
     fetchCallData();
-    const interval = setInterval(fetchCallData, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchCallData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -183,18 +118,15 @@ export default function ClientPortal() {
 
   const sendMessage = () => {
     if (!messageInput.trim()) return;
-
     const newMessage = {
       id: chatMessages.length + 1,
       from: 'user',
       text: messageInput,
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     };
-
     setChatMessages([...chatMessages, newMessage]);
     setMessageInput('');
 
-    // Simulate AI response
     setTimeout(() => {
       const aiResponse = {
         id: chatMessages.length + 2,
@@ -208,7 +140,6 @@ export default function ClientPortal() {
 
   const getAIResponse = (message) => {
     const msg = message.toLowerCase();
-
     if (msg.includes('revenue') || msg.includes('lost') || msg.includes('money')) {
       return `I can see you have ${dashboardMetrics.bookings} bookings with $${dashboardMetrics.revenue} in revenue from ${dashboardMetrics.totalCalls} calls. Your conversion rate is ${dashboardMetrics.conversions}%. Keep up the great work!`;
     }
@@ -221,7 +152,6 @@ export default function ClientPortal() {
     if (msg.includes('help') || msg.includes('how') || msg.includes('?')) {
       return "I can help you with:\n• Revenue tracking and insights\n• Call and booking analytics\n• Conversation management\n• Performance metrics\n\nWhat would you like to know?";
     }
-
     return "I'm here to help! You can ask me about your calls, bookings, revenue, conversations, or analytics. What would you like to know?";
   };
 
@@ -247,11 +177,7 @@ export default function ClientPortal() {
               {tabs.map(tab => {
                 const Icon = tab.icon;
                 return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === tab.id ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                  >
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === tab.id ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                     <Icon className="w-5 h-5" />
                     <span className="hidden lg:inline">{tab.name}</span>
                   </button>
@@ -281,29 +207,9 @@ export default function ClientPortal() {
             <div className="flex-1">
               <p className="font-bold text-yellow-900">⚠️ API Connection Issue</p>
               <p className="text-sm text-yellow-800 mb-2">{dataError}</p>
-              <p className="text-xs text-yellow-700 italic">
-                📋 Showing demo data below. Live data will appear once Supabase connection is restored.
-              </p>
-              <div className="mt-2 p-2 bg-white rounded border border-yellow-200">
-                <p className="text-xs font-mono text-gray-600">
-                  <strong>Debug:</strong> Open browser DevTools (F12) → Console to see detailed error logs
-                </p>
-              </div>
+              <p className="text-xs text-yellow-700 italic">📋 Showing demo data below. Live data will appear once Supabase connection is restored.</p>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setDataError(null);
-                  setIsLoadingData(true);
-                  // Trigger a refetch
-                  const event = new Event('refetch');
-                  window.dispatchEvent(event);
-                }}
-                className="px-3 py-1 text-sm font-bold text-yellow-700 hover:bg-yellow-100 rounded transition-colors whitespace-nowrap"
-              >
-                Retry Now
-              </button>
-            </div>
+            <button onClick={() => { setDataError(null); setIsLoadingData(true); }} className="px-3 py-1 text-sm font-bold text-yellow-700 hover:bg-yellow-100 rounded transition-colors whitespace-nowrap">Retry Now</button>
           </div>
         </div>
       )}
@@ -324,26 +230,15 @@ export default function ClientPortal() {
 
       {/* Floating Chat Widget */}
       {!chatOpen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-all z-50 animate-bounce"
-        >
+        <button onClick={() => setChatOpen(true)} className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-all z-50 animate-bounce">
           <MessageSquare className="w-7 h-7" />
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
-            1
-          </span>
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">1</span>
         </button>
       )}
 
       {/* Chat Window */}
       {chatOpen && (
-        <div 
-          className={`fixed z-50 transition-all duration-300 ${
-            chatMinimized 
-              ? 'bottom-6 right-6 w-80' 
-              : 'bottom-6 right-6 w-96 h-[600px]'
-          }`}
-        >
+        <div className={`fixed z-50 transition-all duration-300 ${chatMinimized ? 'bottom-6 right-6 w-80' : 'bottom-6 right-6 w-96 h-[600px]'}`}>
           <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200 flex flex-col h-full overflow-hidden">
             {/* Chat Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
@@ -357,20 +252,10 @@ export default function ClientPortal() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setChatMinimized(!chatMinimized)}
-                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-                >
-                  {chatMinimized ? (
-                    <Maximize2 className="w-5 h-5 text-white" />
-                  ) : (
-                    <Minimize2 className="w-5 h-5 text-white" />
-                  )}
+                <button onClick={() => setChatMinimized(!chatMinimized)} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
+                  {chatMinimized ? <Maximize2 className="w-5 h-5 text-white" /> : <Minimize2 className="w-5 h-5 text-white" />}
                 </button>
-                <button 
-                  onClick={() => setChatOpen(false)}
-                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-                >
+                <button onClick={() => setChatOpen(false)} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
                   <X className="w-5 h-5 text-white" />
                 </button>
               </div>
@@ -383,16 +268,10 @@ export default function ClientPortal() {
                   {chatMessages.map(msg => (
                     <div key={msg.id} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] ${msg.from === 'user' ? 'order-2' : 'order-1'}`}>
-                        <div className={`rounded-3xl px-6 py-3 ${
-                          msg.from === 'user'
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                            : 'bg-white border-2 border-gray-200 text-gray-900'
-                        }`}>
+                        <div className={`rounded-3xl px-6 py-3 ${msg.from === 'user' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white' : 'bg-white border-2 border-gray-200 text-gray-900'}`}>
                           <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>
                         </div>
-                        <p className={`text-xs text-gray-500 mt-1 ${msg.from === 'user' ? 'text-right' : 'text-left'}`}>
-                          {msg.time}
-                        </p>
+                        <p className={`text-xs text-gray-500 mt-1 ${msg.from === 'user' ? 'text-right' : 'text-left'}`}>{msg.time}</p>
                       </div>
                     </div>
                   ))}
@@ -401,49 +280,15 @@ export default function ClientPortal() {
                 {/* Chat Input */}
                 <div className="p-4 bg-white border-t border-gray-200">
                   <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                      placeholder="Ask me anything..."
-                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all"
-                    />
-                    <button
-                      onClick={sendMessage}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg shadow-blue-500/30"
-                    >
+                    <input type="text" value={messageInput} onChange={(e) => setMessageInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Ask me anything..." className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all" />
+                    <button onClick={sendMessage} className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg shadow-blue-500/30">
                       <Send className="w-5 h-5" />
                     </button>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button 
-                      onClick={() => {
-                        setMessageInput('Show me revenue opportunities');
-                        setTimeout(() => sendMessage(), 100);
-                      }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-colors"
-                    >
-                      💰 Revenue
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setMessageInput('Check my appointments');
-                        setTimeout(() => sendMessage(), 100);
-                      }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-colors"
-                    >
-                      📅 Appointments
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setMessageInput('Help me with conversations');
-                        setTimeout(() => sendMessage(), 100);
-                      }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-colors"
-                    >
-                      💬 Messages
-                    </button>
+                    <button onClick={() => { setMessageInput('Show me revenue opportunities'); setTimeout(() => sendMessage(), 100); }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-colors">💰 Revenue</button>
+                    <button onClick={() => { setMessageInput('Check my appointments'); setTimeout(() => sendMessage(), 100); }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-colors">📅 Appointments</button>
+                    <button onClick={() => { setMessageInput('Help me with conversations'); setTimeout(() => sendMessage(), 100); }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition-colors">💬 Messages</button>
                   </div>
                 </div>
               </>
