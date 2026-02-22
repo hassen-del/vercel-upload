@@ -227,30 +227,55 @@ export default function ClientPortal() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Clean Header */}
-      <header className="sticky top-0 bg-white border-b border-gray-200 z-40">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Contractor Gorilla Dashboard</h1>
-          <div className="hidden md:flex gap-1">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.name}
-                </button>
-              );
-            })}
+      {/* Top Navigation Bar */}
+      <nav className="sticky top-0 bg-white border-b border-gray-200 z-40 shadow-sm">
+        <div className="max-w-[1920px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
+                <LayoutDashboard className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-gray-900">RevenueFlow Dashboard</h1>
+                <p className="text-xs text-gray-600">Client Portal</p>
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-2">
+              {tabs.map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="hidden lg:inline">{tab.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Client Info */}
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-bold text-gray-900">{branding.name}</p>
+                <p className="text-xs text-gray-600">{branding.trialStatus}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">
+                {branding.avatar}
+              </div>
+            </div>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Error Alert */}
       {dataError && (
