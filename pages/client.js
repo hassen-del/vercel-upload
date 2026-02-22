@@ -26,7 +26,7 @@ export default function ClientPortal() {
   });
   const [chatMessages, setChatMessages] = useState([
     { id: 1, from: 'ai', text: 'Hi! 👋 Welcome to your Ava AI dashboard. How can I help you today?', time: '10:30 AM' }
-  ]);
+  ]); // Vercel refresh trigger
   const [messageInput, setMessageInput] = useState('');
 
   useEffect(() => {
